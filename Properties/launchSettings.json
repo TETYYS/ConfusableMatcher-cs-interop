@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ConfusableMatcher-cs-interop": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}
