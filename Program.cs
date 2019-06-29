@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Threading;
 using CMHandle = System.IntPtr;
@@ -44,7 +40,6 @@ namespace ConfusableMatcherCSInterop
 		private static extern CMHandle InitConfusableMatcher(CMMap Map, bool AddDefaultValues);
 		public unsafe ConfusableMatcher(List<(string Key, string Value)> Map, bool AddDefaultValues = true)
 		{
-			__Q = Guid.NewGuid();
 			var cmmap = new CMMap();
 			var kvs = new CMKV[Map.Count];
 			int x = 0;
@@ -175,8 +170,6 @@ namespace ConfusableMatcherCSInterop
 		private static extern void FreeConfusableMatcher(CMHandle In);
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
 		private static extern CMHandle FreeIgnoreList(CMListHandle List);
-
-		private Guid __Q;
 
 		public void Dispose()
 		{

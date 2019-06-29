@@ -1,9 +1,15 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
-    <TargetFramework>netcoreapp3.0</TargetFramework>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>CS_interop</RootNamespace>
+    <Authors>tetyys</Authors>
+    <Product />
+    <Description>C# interoperability library for https://github.com/TETYYS/ConfusableMatcher</Description>
+    <PackageProjectUrl>https://github.com/TETYYS/ConfusableMatcher-cs-interop</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/TETYYS/ConfusableMatcher-cs-interop</RepositoryUrl>
+    <PackageTags>string confusables unicode native interop</PackageTags>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
