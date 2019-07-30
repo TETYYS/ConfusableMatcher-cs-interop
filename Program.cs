@@ -113,15 +113,15 @@ namespace ConfusableMatcherCSInterop
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
 		private static unsafe extern ulong StringIndexOf(CMHandle CM, byte *In, byte *Contains, bool MatchRepeating, int StartIndex, CMListHandle IgnoreList);
 
-		public unsafe (int Index, int Length) IndexOf(ReadOnlyMemory<char> In, ReadOnlyMemory<char> Contains, bool MatchRepeating, int StartIndex)
+		public unsafe (int Index, int Length) IndexOf(ReadOnlySpan<char> In, ReadOnlySpan<char> Contains, bool MatchRepeating, int StartIndex)
 		{
-			fixed (char* ptrIn = &MemoryMarshal.GetReference(In.Span)) {
+			fixed (char* ptrIn = &MemoryMarshal.GetReference(In)) {
 				int inLen = Encoding.UTF8.GetByteCount(ptrIn, In.Length);
 				var inBuffer = stackalloc byte[inLen + 1];
 				Encoding.UTF8.GetBytes(ptrIn, In.Length, inBuffer, inLen);
 			
 
-				fixed (char* ptrContains = &MemoryMarshal.GetReference(Contains.Span)) {
+				fixed (char* ptrContains = &MemoryMarshal.GetReference(Contains)) {
 					int containsLen = Encoding.UTF8.GetByteCount(ptrContains, Contains.Length);
 					var containsBuffer = stackalloc byte[containsLen + 1];
 					Encoding.UTF8.GetBytes(ptrContains, Contains.Length, containsBuffer, containsLen);
@@ -132,19 +132,19 @@ namespace ConfusableMatcherCSInterop
 			}
 		}
 
-		public (int Index, int Length) IndexOf(string In, string Contains, bool MatchRepeating, int StartIndex) => IndexOf(In.AsMemory(), Contains.AsMemory(), MatchRepeating, StartIndex);
+		public (int Index, int Length) IndexOf(string In, string Contains, bool MatchRepeating, int StartIndex) => IndexOf(In.AsMemory().Span, Contains.AsMemory().Span, MatchRepeating, StartIndex);
 
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
 		private static unsafe extern MAPPING_RESPONSE AddMapping(CMHandle CM, byte* Key, byte* Value, bool CheckValueDuplicate);
 
-		public unsafe MAPPING_RESPONSE AddMapping(ReadOnlyMemory<char> Key, ReadOnlyMemory<char> Value, bool CheckValueDuplicate = true)
+		public unsafe MAPPING_RESPONSE AddMapping(ReadOnlySpan<char> Key, ReadOnlySpan<char> Value, bool CheckValueDuplicate = true)
 		{
-			fixed (char* ptrKey = &MemoryMarshal.GetReference(Key.Span)) {
+			fixed (char* ptrKey = &MemoryMarshal.GetReference(Key)) {
 				int keyLen = Encoding.UTF8.GetByteCount(ptrKey, Key.Length);
 				var keyBuffer = stackalloc byte[keyLen + 1];
 				Encoding.UTF8.GetBytes(ptrKey, Key.Length, keyBuffer, keyLen);
-
-				fixed (char* ptrValue = &MemoryMarshal.GetReference(Value.Span)) {
+				
+				fixed (char* ptrValue = &MemoryMarshal.GetReference(Value)) {
 					int valLen = Encoding.UTF8.GetByteCount(ptrValue, Value.Length);
 					var valBuffer = stackalloc byte[valLen + 1];
 					Encoding.UTF8.GetBytes(ptrValue, Value.Length, valBuffer, valLen);
@@ -154,20 +154,20 @@ namespace ConfusableMatcherCSInterop
 			}
 		}
 
-		public MAPPING_RESPONSE AddMapping(string Key, string Value, bool CheckValueDuplicate = true) => AddMapping(Key.AsMemory(), Value.AsMemory(), CheckValueDuplicate);
+		public MAPPING_RESPONSE AddMapping(string Key, string Value, bool CheckValueDuplicate = true) => AddMapping(Key.AsMemory().Span, Value.AsMemory().Span, CheckValueDuplicate);
 
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
 		[return: MarshalAs(UnmanagedType.I1)]
 		private static unsafe extern bool RemoveMapping(CMHandle CM, byte* Key, byte* Value);
 
-		public unsafe bool RemoveMapping(ReadOnlyMemory<char> Key, ReadOnlyMemory<char> Value)
+		public unsafe bool RemoveMapping(ReadOnlySpan<char> Key, ReadOnlySpan<char> Value)
 		{
-			fixed (char* ptrKey = &MemoryMarshal.GetReference(Key.Span)) {
+			fixed (char* ptrKey = &MemoryMarshal.GetReference(Key)) {
 				int keyLen = Encoding.UTF8.GetByteCount(ptrKey, Key.Length);
 				var keyBuffer = stackalloc byte[keyLen + 1];
 				Encoding.UTF8.GetBytes(ptrKey, Key.Length, keyBuffer, keyLen);
 
-				fixed (char* ptrValue = &MemoryMarshal.GetReference(Value.Span)) {
+				fixed (char* ptrValue = &MemoryMarshal.GetReference(Value)) {
 					int valLen = Encoding.UTF8.GetByteCount(ptrValue, Value.Length);
 					var valBuffer = stackalloc byte[valLen + 1];
 					Encoding.UTF8.GetBytes(ptrValue, Value.Length, valBuffer, valLen);
@@ -177,7 +177,7 @@ namespace ConfusableMatcherCSInterop
 			}
 		}
 
-		public unsafe bool RemoveMapping(string Key, string Value) => RemoveMapping(Key.AsMemory(), Value.AsMemory());
+		public unsafe bool RemoveMapping(string Key, string Value) => RemoveMapping(Key.AsMemory().Span, Value.AsMemory().Span);
 
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
 		private static extern void FreeConfusableMatcher(CMHandle In);
