@@ -446,5 +446,36 @@ namespace UnitTests
 			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping(new string(new[] { 'A', (char)0 }), new string(new[] { 'A', (char)0 }), false));
 			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping(new string(new[] { 'A', (char)1 }), new string(new[] { 'A', (char)1 }), false));
 		}
+
+		[Fact]
+		void Test16()
+		{
+			var map = new List<(string Key, string Value)>();
+			var matcher = new ConfusableMatcher(map);
+			
+			bool running = true;
+
+			var t1 = new Thread(() => {
+				while (running) {
+					matcher.IndexOf("ASD", "ZXC", false, 0);
+				}
+			});
+
+			var t2 = new Thread(() => {
+				while (running) {
+					matcher.AddMapping("Z", "A", false);
+					matcher.RemoveMapping("Z", "A");
+				}
+			});
+
+			t1.Start();
+			t2.Start();
+
+			Thread.Sleep(10000);
+
+			running = false;
+			t1.Join();
+			t2.Join();
+		}
 	}
 }
