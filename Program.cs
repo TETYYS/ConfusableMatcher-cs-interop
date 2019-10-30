@@ -36,7 +36,8 @@ namespace ConfusableMatcherCSInterop
 
 		private readonly CMHandle CMHandle;
 		private CMListHandle CMIgnoreList = IntPtr.Zero;
-		private int Freed = 0;
+        private object CMIgnoreListLock = new object();
+        private int Freed = 0;
 
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
 		private static extern CMHandle InitConfusableMatcher(CMMap Map, bool AddDefaultValues);
@@ -92,9 +93,6 @@ namespace ConfusableMatcherCSInterop
 		private static extern CMHandle ConstructIgnoreList(IntPtr List, int Count);
 		public unsafe void SetIgnoreList(IList<ReadOnlyMemory<char>> In)
 		{
-			if (CMIgnoreList != IntPtr.Zero)
-				FreeIgnoreList(CMIgnoreList);
-
 			var list = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(IntPtr)) * In.Count);
 			for (int x = 0;x < In.Count;x++) {
 				fixed (char* pIn = &MemoryMarshal.GetReference(In[x].Span)) {
@@ -105,7 +103,11 @@ namespace ConfusableMatcherCSInterop
 				}
 			}
 
-			CMIgnoreList = ConstructIgnoreList(list, In.Count);
+            lock (CMIgnoreListLock) {
+                if (CMIgnoreList != IntPtr.Zero)
+                    FreeIgnoreList(CMIgnoreList);
+                CMIgnoreList = ConstructIgnoreList(list, In.Count);
+            }
 		}
 
 		public void SetIgnoreList(IList<string> In) => SetIgnoreList(In.Select(x => x.AsMemory()).ToList());
@@ -125,9 +127,12 @@ namespace ConfusableMatcherCSInterop
 					int containsLen = Encoding.UTF8.GetByteCount(ptrContains, Contains.Length);
 					var containsBuffer = stackalloc byte[containsLen + 1];
 					Encoding.UTF8.GetBytes(ptrContains, Contains.Length, containsBuffer, containsLen);
-			
-					var res = StringIndexOf(CMHandle, inBuffer, containsBuffer, MatchRepeating, StartIndex, CMIgnoreList);
-					return ((int)(res & 0xFFFFFFFF), (int)(res >> 32));
+
+                    ulong res;
+                    lock (CMIgnoreListLock) {
+                        res = StringIndexOf(CMHandle, inBuffer, containsBuffer, MatchRepeating, StartIndex, CMIgnoreList);
+                    }
+                    return ((int)(res & 0xFFFFFFFF), (int)(res >> 32));
 				}
 			}
 		}

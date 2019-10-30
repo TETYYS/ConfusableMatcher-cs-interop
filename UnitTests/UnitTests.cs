@@ -477,5 +477,48 @@ namespace UnitTests
 			t1.Join();
 			t2.Join();
 		}
+
+        [Fact]
+        void Test17()
+        {
+            var map = new List<(string Key, string Value)>() {
+                ("N", "/\\/") 
+            };
+            var ignoreList = new List<string>();
+            var matcher = new ConfusableMatcher(map);
+            bool running = true;
+            var @lock = new object();
+
+            var t1 = new Thread(() => {
+                while (running) {
+                    lock (@lock) {
+                        matcher.IndexOf("/\\/", "N", true, 0);
+                    }
+                }
+            });
+
+            var t2 = new Thread(() => {
+                while (running) {
+                    lock (@lock) {
+                        if (matcher != null)
+                            matcher.Dispose();
+
+                        matcher = new ConfusableMatcher(map, true);
+                    }
+                    matcher.SetIgnoreList(ignoreList);
+
+                    Thread.Sleep(500);
+                }
+            });
+
+            t1.Start();
+            t2.Start();
+
+            Thread.Sleep(10000);
+
+            running = false;
+            t1.Join();
+            t2.Join();
+        }
 	}
 }
