@@ -19,7 +19,7 @@ namespace UnitTests
 			map.Add(("C", "S"));
 			map.Add(("E", "T"));
 
-			var matcher = new ConfusableMatcher(map);
+			var matcher = new ConfusableMatcher(map, null);
 			var res = matcher.IndexOf("TEST", "NICE", false, 0);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(4, res.Length);
@@ -33,7 +33,7 @@ namespace UnitTests
 			map.Add(("V", "VA"));
 			map.Add(("V", "VO"));
 
-			var matcher = new ConfusableMatcher(map);
+			var matcher = new ConfusableMatcher(map, null);
 			var res = matcher.IndexOf("VV", "VAVOVAVO", false, 0);
 			Assert.Equal(-1, res.Index);
 			Assert.Equal(-1, res.Length);
@@ -59,7 +59,7 @@ namespace UnitTests
 			map.Add(("A", "\x02\x03"));
 			map.Add(("B", "\xFA\xFF"));
 
-			var matcher = new ConfusableMatcher(map);
+			var matcher = new ConfusableMatcher(map, null);
 			var res = matcher.IndexOf("\x02\x03\xFA\xFF", "AB", false, 0);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(6, res.Length); // Due to conversion to UTF8
@@ -73,8 +73,7 @@ namespace UnitTests
 			map.Add(("S", "$"));
 			map.Add(("D", "[)"));
 
-			var matcher = new ConfusableMatcher(map);
-			matcher.SetIgnoreList(new string[] { "_", " " });
+			var matcher = new ConfusableMatcher(map, new[] { "_", " " });
 			var res = matcher.IndexOf("A__ _ $$$[)D", "ASD", true, 0);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(11, res.Length);
@@ -89,7 +88,7 @@ namespace UnitTests
 			map.Add(("N", "/\\"));
 			map.Add(("I", "/"));
 
-			var matcher = new ConfusableMatcher(map);
+			var matcher = new ConfusableMatcher(map, null);
 			var res = matcher.IndexOf("/\\/CE", "NICE", false, 0);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(5, res.Length);
@@ -104,7 +103,7 @@ namespace UnitTests
 			map.Add(("V", "\\/"));
 			map.Add(("I", "/"));
 
-			var matcher = new ConfusableMatcher(map);
+			var matcher = new ConfusableMatcher(map, null);
 			var res = matcher.IndexOf("I/\\/AM", "INAN", true, 0);
 			Assert.Equal(-1, res.Index);
 			Assert.Equal(-1, res.Length);
@@ -166,8 +165,7 @@ namespace UnitTests
 			var map = GetDefaultMap();
 
 			var @in = "AAAAAAAAASSAFSAFNFNFNISFNSIFSIFJSDFUDSHF ASUF/|/__/|/___%/|/%I%%/|//|/%%%%%NNNN/|/NN__/|/N__𝘪G___%____$__G__𝓰𝘦Ѓ";
-			var matcher = new ConfusableMatcher(map);
-			matcher.SetIgnoreList(new[] { "_", "%", "$" });
+			var matcher = new ConfusableMatcher(map, new[] { "_", "%", "$" });
 			var res = matcher.IndexOf(@in, "NIGGER", true, 0);
 
 			Assert.True(
@@ -219,7 +217,7 @@ namespace UnitTests
 			for (var x = 0;x < keys.Length;x++)
 				map.Add((keys[x], vals[x]));
 
-			var matcher = new ConfusableMatcher(map);
+			var matcher = new ConfusableMatcher(map, null);
 
 			var res = matcher.IndexOf(In, Contains, true, 0);
 			Assert.Equal(res.Index, ExpectedIndex);
@@ -231,8 +229,7 @@ namespace UnitTests
 		{
 			var map = new List<(string Key, string Value)>();
 
-			var matcher = new ConfusableMatcher(map);
-			matcher.SetIgnoreList(new[] { "\U00000332", "\U00000305", "[", "]" });
+			var matcher = new ConfusableMatcher(map, new[] { "\U00000332", "\U00000305", "[", "]" });
 			var res = matcher.IndexOf(
 				"[̲̅a̲̅][̲̅b̲̅][̲̅c̲̅][̲̅d̲̅][̲̅e̲̅][̲̅f̲̅][̲̅g̲̅][̲̅h̲̅][̲̅i̲̅][̲̅j̲̅][̲̅k̲̅][̲̅l̲̅][̲̅m̲̅][̲̅n̲̅][̲̅o̲̅][̲̅p̲̅][̲̅q̲̅][̲̅r̲̅][̲̅s̲̅][̲̅t̲̅][̲̅u̲̅][̲̅v̲̅][̲̅w̲̅][̲̅x̲̅][̲̅y̲̅][̲̅z̲̅][̲̅0̲̅][̲̅1̲̅][̲̅2̲̅][̲̅3̲̅][̲̅4̲̅][̲̅5̲̅][̲̅6̲̅][̲̅7̲̅][̲̅8̲̅][̲̅9̲̅][̲̅0̲̅]",
 				"ABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890",
@@ -244,38 +241,6 @@ namespace UnitTests
 
 		[Fact]
 		void Test9()
-		{
-			var map = new List<(string Key, string Value)>();
-
-			map.Add((" ", " "));
-
-			for (var x = 0;x < 1000;x++) {
-				using (var matcher = new ConfusableMatcher(map)) {
-					var res = matcher.IndexOf(
-						"NOT NICE",
-						"VERY NICE",
-						false,
-						0);
-					Assert.Equal(-1, res.Index);
-					Assert.Equal(-1, res.Length);
-
-					Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("VERY", "NOT", false));
-
-					res = matcher.IndexOf(
-						"NOT NICE",
-						"VERY NICE",
-						false,
-						0);
-					Assert.Equal(0, res.Index);
-					Assert.Equal(8, res.Length);
-
-					Assert.True(matcher.RemoveMapping("VERY", "NOT"));
-				}
-			}
-		}
-
-		[Fact]
-		void Test10()
 		{
 			var map = new List<(string Key, string Value)>();
 
@@ -299,7 +264,7 @@ namespace UnitTests
 			map.Add(("B", "ABCDEFGHIJKLMNOPQR"));
 			map.Add(("B", "ABCDEFGHIJKLMNOPQRS"));
 
-			var matcher = new ConfusableMatcher(map);
+			var matcher = new ConfusableMatcher(map, null);
 
 			var res = matcher.IndexOf(
 				"ABCDEFGHIJKLMNOPQRS",
@@ -309,28 +274,30 @@ namespace UnitTests
 			Assert.Equal(0, res.Index);
 			Assert.True(res.Length >= 0 && res.Length == 1);
 
-			Assert.True(matcher.RemoveMapping("B", "ABCDEFGHIJKLMNOP"));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "P", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQ", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQR", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRS", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRST", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTU", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTUV", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTUVW", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTUVWX", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTUVWXY", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTUVWXYZ", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTUVWXYZ0", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTUVWXYZ01", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTUVWXYZ012", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTUVWXYZ0123", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTUVWXYZ01234", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTUVWXYZ012345", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTUVWXYZ0123456", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTUVWXYZ01234567", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTUVWXYZ012345678", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("B", "PQRSTUVWXYZ0123456789", false));
+			map.Remove(("B", "ABCDEFGHIJKLMNOP"));
+			map.Add(("B", "P"));
+			map.Add(("B", "PQ"));
+			map.Add(("B", "PQR"));
+			map.Add(("B", "PQRS"));
+			map.Add(("B", "PQRST"));
+			map.Add(("B", "PQRSTU"));
+			map.Add(("B", "PQRSTUV"));
+			map.Add(("B", "PQRSTUVW"));
+			map.Add(("B", "PQRSTUVWX"));
+			map.Add(("B", "PQRSTUVWXY"));
+			map.Add(("B", "PQRSTUVWXYZ"));
+			map.Add(("B", "PQRSTUVWXYZ0"));
+			map.Add(("B", "PQRSTUVWXYZ01"));
+			map.Add(("B", "PQRSTUVWXYZ012"));
+			map.Add(("B", "PQRSTUVWXYZ0123"));
+			map.Add(("B", "PQRSTUVWXYZ01234"));
+			map.Add(("B", "PQRSTUVWXYZ012345"));
+			map.Add(("B", "PQRSTUVWXYZ0123456"));
+			map.Add(("B", "PQRSTUVWXYZ01234567"));
+			map.Add(("B", "PQRSTUVWXYZ012345678"));
+			map.Add(("B", "PQRSTUVWXYZ0123456789"));
+
+			matcher = new ConfusableMatcher(map, null);
 
 			res = matcher.IndexOf(
 				"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
@@ -344,16 +311,17 @@ namespace UnitTests
 				"PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789",
 				"BBBBBBBBBBBBBBBBBBBBBBBBBBB",
 				true,
-				0);
+				0,
+				5000);
 			Assert.Equal(0, res.Index);
 			Assert.True(res.Length >= 0 && res.Length == 547);
 		}
 
 		[Fact]
-		void Test11()
+		void Test10()
 		{
 			var map = new List<(string Key, string Value)>();
-			var matcher = new ConfusableMatcher(map);
+			var matcher = new ConfusableMatcher(map, null);
 			var res = matcher.IndexOf(":)", "", true, 0);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(0, res.Length);
@@ -364,128 +332,40 @@ namespace UnitTests
 		}
 
 		[Fact]
-		void Test12()
+		void Test11()
 		{
 			var map = new List<(string Key, string Value)>();
-
-			var matcher = new ConfusableMatcher(map);
-
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("A", "A", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("A", "A", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("A", "A", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("A", "A", false));
-
-			var res = matcher.IndexOf("ABAAA", "ABAR", true, 0);
-			Assert.Equal(-1, res.Index);
-			Assert.Equal(-1, res.Length);
-		}
-
-		[Fact]
-		void Test13()
-		{
-			var map = new List<(string Key, string Value)>();
-			var matcher = new ConfusableMatcher(map);
-			var res = matcher.IndexOf("?", "?", true, 0);
-			Assert.Equal(-1, res.Index);
-			Assert.Equal(-1, res.Length);
-
-			for (var x = 0;x < 1000;x++) {
-				Assert.False(matcher.RemoveMapping("?", "?"));
-				Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("?", "?", false));
-				Assert.False(matcher.RemoveMapping("?_", "?_"));
-				Assert.False(matcher.RemoveMapping("?", "_"));
-				Assert.False(matcher.RemoveMapping("?", "?__"));
-
-				Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("?_", "?_", false));
-				Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("?_", "_", false));
-				Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("?_", "?___", false));
-				Assert.True(matcher.RemoveMapping("?_", "?___"));
-				Assert.True(matcher.RemoveMapping("?_", "_"));
-				Assert.True(matcher.RemoveMapping("?_", "?_"));
-				Assert.True(matcher.RemoveMapping("?", "?"));
-			}
-		}
-
-		[Fact]
-		void Test14()
-		{
-			var map = new List<(string Key, string Value)>();
-			var matcher = new ConfusableMatcher(map);
+			var matcher = new ConfusableMatcher(map, null);
 
 			var res = matcher.IndexOf("A", "A", false, 0);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(1, res.Length);
 
-			var matcher2 = new ConfusableMatcher(map, false);
+			var matcher2 = new ConfusableMatcher(map, null, false);
 			res = matcher2.IndexOf("A", "A", false, 0);
 			Assert.Equal(-1, res.Index);
 			Assert.Equal(-1, res.Length);
 		}
 
 		[Fact]
-		void Test15()
+		void Test12()
 		{
 			var map = new List<(string Key, string Value)>();
-			var matcher = new ConfusableMatcher(map);
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.EMPTY_KEY, matcher.AddMapping("", "?", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.EMPTY_VALUE, matcher.AddMapping("?", "", false));
-			Assert.NotEqual(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("", "", false));
-			Assert.NotEqual(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping(new string((char)0, 1), "?", false));
-			Assert.NotEqual(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping("?", new string((char)0, 1), false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.INVALID_KEY, matcher.AddMapping(new string((char)1, 1), "?", false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.INVALID_VALUE, matcher.AddMapping("?", new string((char)1, 1), false));
-			Assert.NotEqual(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping(new string((char)0, 1), new string((char)1, 1), false));
-			Assert.NotEqual(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping(new string((char)0, 1), new string((char)0, 1), false));
-			Assert.NotEqual(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping(new string((char)1, 1), new string((char)0, 1), false));
-			Assert.NotEqual(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping(new string((char)1, 1), new string((char)1, 1), false));
-			Assert.NotEqual(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping(new string(new[] { (char)1, (char)0 }), new string(new[] { (char)0, (char)1 }), false));
-			Assert.NotEqual(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping(new string(new[] { 'A', (char)0 }), new string(new[] { (char)0, 'A' }), false));
-			Assert.NotEqual(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping(new string(new[] { (char)1, (char)0 }), new string(new[] { (char)0, (char)1 }), false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping(new string(new[] { 'A', (char)0 }), new string(new[] { 'A', (char)1 }), false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping(new string(new[] { 'A', (char)1 }), new string(new[] { 'A', (char)0 }), false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping(new string(new[] { 'A', (char)0 }), new string(new[] { 'A', (char)0 }), false));
-			Assert.Equal(ConfusableMatcher.MAPPING_RESPONSE.SUCCESS, matcher.AddMapping(new string(new[] { 'A', (char)1 }), new string(new[] { 'A', (char)1 }), false));
-		}
+			var matcher = new ConfusableMatcher(map, new[] { "B", " ", "C" });
 
-		[Fact]
-		void Test16()
-		{
-			var map = new List<(string Key, string Value)>();
-			var matcher = new ConfusableMatcher(map);
-			
-			bool running = true;
-
-			var t1 = new Thread(() => {
-				while (running) {
-					matcher.IndexOf("ASD", "ZXC", false, 0);
-				}
-			});
-
-			var t2 = new Thread(() => {
-				while (running) {
-					matcher.AddMapping("Z", "A", false);
-					matcher.RemoveMapping("Z", "A");
-				}
-			});
-
-			t1.Start();
-			t2.Start();
-
-			Thread.Sleep(10000);
-
-			running = false;
-			t1.Join();
-			t2.Join();
+			var res = matcher.IndexOf("AB CD", "ABCD", false, 0);
+			Assert.Equal(0, res.Index);
+			Assert.Equal(5, res.Length);
 		}
 
         [Fact]
-        void Test17()
+        void Test13()
         {
             var map = new List<(string Key, string Value)>() {
                 ("N", "/\\/") 
             };
             var ignoreList = new List<string>();
-            var matcher = new ConfusableMatcher(map);
+            var matcher = new ConfusableMatcher(map, null);
             bool running = true;
             var @lock = new object();
 
@@ -503,9 +383,8 @@ namespace UnitTests
                         if (matcher != null)
                             matcher.Dispose();
 
-                        matcher = new ConfusableMatcher(map, true);
+                        matcher = new ConfusableMatcher(map, null, true);
                     }
-                    matcher.SetIgnoreList(ignoreList);
 
                     Thread.Sleep(500);
                 }
