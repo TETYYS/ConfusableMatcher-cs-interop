@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -98,25 +99,43 @@ namespace ConfusableMatcherCSInterop
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
 		private static unsafe extern ulong StringIndexOf(IntPtr CM, byte *In, byte *Contains, bool MatchRepeating, int StartIndex, int StatePushLimit);
 
-		public unsafe (int Index, int Length) IndexOf(ReadOnlySpan<char> In, ReadOnlySpan<char> Contains, bool MatchRepeating, int StartIndex, int StatePushLimit = 1000)
+		public (int Index, int Length) IndexOf(ReadOnlySpan<char> In, ReadOnlySpan<char> Contains, bool MatchRepeating, int StartIndex, int StatePushLimit = 1000)
 		{
-			fixed (char* pUtf16In = &MemoryMarshal.GetReference(In)) {
-				int inUtf8len = Encoding.UTF8.GetByteCount(pUtf16In, In.Length);
-				var pUtf8In = stackalloc byte[inUtf8len + 1];
-				Encoding.UTF8.GetBytes(pUtf16In, In.Length, pUtf8In, inUtf8len);
+			// TODO: Utf8String
 
-				fixed (char* pUtf16Contains = &MemoryMarshal.GetReference(Contains)) {
-					int containsUtf8Len = Encoding.UTF8.GetByteCount(pUtf16Contains, Contains.Length);
-					var pUtf8Contains = stackalloc byte[containsUtf8Len + 1];
-					Encoding.UTF8.GetBytes(pUtf16Contains, Contains.Length, pUtf8Contains, containsUtf8Len);
-
-                    var res = StringIndexOf(CMHandle, pUtf8In, pUtf8Contains, MatchRepeating, StartIndex, StatePushLimit);
-                    return ((int)(res & 0xFFFFFFFF), (int)(res >> 32));
-				}
+			if (StartIndex != 0) {
+				// Convert StartIndex in UTF8 terms
+				var startSkip = In[..StartIndex];
+				StartIndex = Encoding.UTF8.GetByteCount(startSkip);
 			}
+
+			int inUtf8len = Encoding.UTF8.GetMaxByteCount(In.Length);
+			Span<byte> utf8In = stackalloc byte[inUtf8len + 1];
+			Encoding.UTF8.GetBytes(In, utf8In);
+
+			int containsUtf8Len = Encoding.UTF8.GetMaxByteCount(Contains.Length);
+			Span<byte> utf8Contains = stackalloc byte[containsUtf8Len + 1];
+			Encoding.UTF8.GetBytes(Contains, utf8Contains);
+
+			var ret = IndexOf(utf8In, utf8Contains, MatchRepeating, StartIndex, StatePushLimit);
+
+			if (ret.Index != -1) {
+				var start = utf8In[..ret.Index];
+				var matchedPart = utf8In[ret.Index..(ret.Index+ret.Length)];
+
+				return (Encoding.UTF8.GetCharCount(start), Encoding.UTF8.GetCharCount(matchedPart));
+			}
+
+			return ret;
 		}
 
-		public (int Index, int Length) IndexOf(string In, string Contains, bool MatchRepeating, int StartIndex) => IndexOf(In.AsMemory().Span, Contains.AsMemory().Span, MatchRepeating, StartIndex);
+		public unsafe (int Index, int Length) IndexOf(Span<byte> In, Span<byte> Contains, bool MatchRepeating, int StartIndexUtf8, int StatePushLimit = 1000)
+		{
+			var res = StringIndexOf(CMHandle, (byte*)Unsafe.AsPointer(ref In.GetPinnableReference()), (byte*)Unsafe.AsPointer(ref Contains.GetPinnableReference()), MatchRepeating, StartIndexUtf8, StatePushLimit);
+			return ((int)(res & 0xFFFFFFFF), (int)(res >> 32));
+		}
+
+		public (int Index, int Length) IndexOf(string In, string Contains, bool MatchRepeating, int StartIndex, int StatePushLimit = 1000) => IndexOf(In, (ReadOnlySpan<char>)Contains, MatchRepeating, StartIndex, StatePushLimit);
 
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
 		private static extern void FreeConfusableMatcher(IntPtr In);
