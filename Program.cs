@@ -119,7 +119,7 @@ namespace ConfusableMatcherCSInterop
 
 			var ret = IndexOf(utf8In, utf8Contains, MatchRepeating, StartIndex, StatePushLimit);
 
-			if (ret.Index != -1) {
+			if (ret.Index >= 0) {
 				var start = utf8In[..ret.Index];
 				var matchedPart = utf8In[ret.Index..(ret.Index+ret.Length)];
 
