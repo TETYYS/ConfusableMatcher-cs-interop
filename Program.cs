@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -96,6 +97,7 @@ namespace ConfusableMatcherCSInterop
 		}
 
 		public unsafe ConfusableMatcher(IList<(string Key, string Value)> Map, string[] IgnoreList, bool AddDefaultValues = true) : this(Map.Select(x => (x.Key.AsMemory(), x.Value.AsMemory())).ToList(), IgnoreList?.Select(x => x.AsMemory()).ToArray(), AddDefaultValues) { }
+
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
 		private static unsafe extern ulong StringIndexOf(IntPtr CM, byte *In, byte *Contains, bool MatchRepeating, int StartIndex, int StatePushLimit);
 
@@ -133,6 +135,49 @@ namespace ConfusableMatcherCSInterop
 		{
 			var res = StringIndexOf(CMHandle, (byte*)Unsafe.AsPointer(ref In.GetPinnableReference()), (byte*)Unsafe.AsPointer(ref Contains.GetPinnableReference()), MatchRepeating, StartIndexUtf8, StatePushLimit);
 			return ((int)(res & 0xFFFFFFFF), (int)(res >> 32));
+		}
+
+		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
+		private static unsafe extern uint GetKeyMappings(IntPtr CM, byte *In, byte *Output, uint OutputSize);
+		public unsafe List<string> GetKeyMappings(Span<byte> In)
+		{
+			byte* outputPtr = stackalloc byte[IntPtr.Size * 32];
+			var inPtr = (byte*)Unsafe.AsPointer(ref In.GetPinnableReference());
+			MemoryHandle? memHandle = null;
+
+			var sz = GetKeyMappings(CMHandle, inPtr, outputPtr, 32);
+
+			if (sz > 32) {
+				Memory<byte> buffer = new byte[IntPtr.Size * sz];
+				memHandle = buffer.Pin();
+
+				outputPtr = (byte*)memHandle.Value.Pointer;
+				_ = GetKeyMappings(CMHandle, inPtr, outputPtr, sz);
+			}
+
+			var ret = new List<string>((int)sz);
+			for (var x = 0;x < sz;x++) {
+				var arrPtr = (byte**)outputPtr;
+
+				int strSz = 0;
+				while (arrPtr[x][++strSz] != 0x00);
+
+				var copy = Encoding.UTF8.GetString(arrPtr[x], strSz);
+				ret.Add(copy);
+			}
+
+			memHandle?.Dispose();
+
+			return ret;
+		}
+
+		public List<string> GetKeyMappings(string In)
+		{
+			int inUtf8len = Encoding.UTF8.GetMaxByteCount(In.Length);
+			Span<byte> utf8In = stackalloc byte[inUtf8len + 1];
+			Encoding.UTF8.GetBytes(In, utf8In);
+
+			return GetKeyMappings(utf8In);
 		}
 
 		public (int Index, int Length) IndexOf(string In, string Contains, bool MatchRepeating, int StartIndex, int StatePushLimit = 1000) => IndexOf(In, (ReadOnlySpan<char>)Contains, MatchRepeating, StartIndex, StatePushLimit);

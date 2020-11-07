@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Xml.Schema;
 using ConfusableMatcherCSInterop;
@@ -412,6 +414,52 @@ namespace UnitTests
 			var res = matcher.IndexOf("碐랩⿌⎀ꅉᚲ콅讷鷪", "⿌⎀", false, 2);
 			Assert.Equal(2, res.Index);
 			Assert.Equal(2, res.Length);
+		}
+
+		[Fact]
+		void Test15()
+		{
+			var map = new List<(string Key, string Value)>() {
+				("A", "1"),
+				("B", "1"),
+				("C", "1")
+			};
+			var matcher = new ConfusableMatcher(map, null, false);
+
+			/*bool a = false;
+			while (!a) System.Threading.Thread.Sleep(1);*/
+
+			Assert.Equal(new[] { "1" }, matcher.GetKeyMappings("A"));
+			Assert.Equal(new[] { "1" }, matcher.GetKeyMappings("B"));
+			Assert.Equal(new[] { "1" }, matcher.GetKeyMappings("C"));
+		}
+
+		[Fact]
+		void Test16()
+		{
+			var map = new List<(string Key, string Value)>() {
+				("1", "AB"),
+				("1", "CD"),
+				("2", "EEE")
+			};
+			var matcher = new ConfusableMatcher(map, null, false);
+
+			Assert.Equal(new[] { "AB", "CD" }.OrderBy(x => x), matcher.GetKeyMappings("1").OrderBy(x => x));
+			Assert.Equal(new[] { "EEE" }, matcher.GetKeyMappings("2"));
+		}
+
+		[Fact]
+		void Test17()
+		{
+			var map = new List<(string Key, string Value)>();
+
+			for (var x = 0;x < 500;x++) {
+				map.Add(("123", x.ToString()));
+			}
+
+			var matcher = new ConfusableMatcher(map, null, false);
+
+			Assert.Equal(map.Select(x => x.Value).OrderBy(x => x), matcher.GetKeyMappings("123").OrderBy(x => x));
 		}
 	}
 }

@@ -10,6 +10,7 @@
     <PackageProjectUrl>https://github.com/TETYYS/ConfusableMatcher-cs-interop</PackageProjectUrl>
     <RepositoryUrl>https://github.com/TETYYS/ConfusableMatcher-cs-interop</RepositoryUrl>
     <PackageTags>string confusables unicode native interop</PackageTags>
+    <UserSecretsId>91a35d48-1bc6-488c-a294-1966b65dd9bd</UserSecretsId>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -31,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ConfusableMatcher" Version="1.0.3" />
+    <PackageReference Include="ConfusableMatcher" Version="1.0.4" />
     <PackageReference Include="System.Memory" Version="4.5.4" />
   </ItemGroup>
 
