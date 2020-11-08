@@ -314,6 +314,7 @@ namespace UnitTests
 				"BBBBBBBBBBBBBBBBBBBBBBBBBBB",
 				true,
 				0,
+				false,
 				5000);
 			Assert.Equal(0, res.Index);
 			Assert.True(res.Length >= 0 && res.Length == 547);
@@ -460,6 +461,22 @@ namespace UnitTests
 			var matcher = new ConfusableMatcher(map, null, false);
 
 			Assert.Equal(map.Select(x => x.Value).OrderBy(x => x), matcher.GetKeyMappings("123").OrderBy(x => x));
+		}
+
+		[Fact]
+		void Test18()
+		{
+			var map = GetDefaultMap();
+
+			var matcher = new ConfusableMatcher(map, null);
+
+			var In = "ASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASB";
+
+			var res = matcher.IndexOf(In, "ASB", true, 0, false, 20);
+			Assert.Equal((-2, -2), res);
+
+			res = matcher.IndexOf(In, "ASB", true, In.Length - 1, true, 20);
+			Assert.Equal((92, 3), res);
 		}
 	}
 }

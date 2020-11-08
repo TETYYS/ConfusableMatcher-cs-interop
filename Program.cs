@@ -23,6 +23,12 @@ namespace ConfusableMatcherCSInterop
 			public uint Size;
 		}
 
+		struct CMIntPair
+		{
+			public int First;
+			public int Second;
+		}
+
 		private readonly IntPtr CMHandle;
         private int Freed = 0;
 
@@ -99,9 +105,9 @@ namespace ConfusableMatcherCSInterop
 		public unsafe ConfusableMatcher(IList<(string Key, string Value)> Map, string[] IgnoreList, bool AddDefaultValues = true) : this(Map.Select(x => (x.Key.AsMemory(), x.Value.AsMemory())).ToList(), IgnoreList?.Select(x => x.AsMemory()).ToArray(), AddDefaultValues) { }
 
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
-		private static unsafe extern ulong StringIndexOf(IntPtr CM, byte *In, byte *Contains, bool MatchRepeating, int StartIndex, int StatePushLimit);
+		private static unsafe extern CMIntPair StringIndexOf(IntPtr CM, byte *In, byte *Contains, bool MatchRepeating, int StartIndex, bool StartFromEnd, int StatePushLimit);
 
-		public (int Index, int Length) IndexOf(ReadOnlySpan<char> In, ReadOnlySpan<char> Contains, bool MatchRepeating, int StartIndex, int StatePushLimit = 1000)
+		public (int Index, int Length) IndexOf(ReadOnlySpan<char> In, ReadOnlySpan<char> Contains, bool MatchRepeating, int StartIndex, bool StartFromEnd = false, int StatePushLimit = 1000)
 		{
 			// TODO: Utf8String
 
@@ -119,7 +125,7 @@ namespace ConfusableMatcherCSInterop
 			Span<byte> utf8Contains = stackalloc byte[containsUtf8Len + 1];
 			Encoding.UTF8.GetBytes(Contains, utf8Contains);
 
-			var ret = IndexOf(utf8In, utf8Contains, MatchRepeating, StartIndex, StatePushLimit);
+			var ret = IndexOf(utf8In, utf8Contains, MatchRepeating, StartIndex, StartFromEnd, StatePushLimit);
 
 			if (ret.Index >= 0) {
 				var start = utf8In[..ret.Index];
@@ -131,10 +137,10 @@ namespace ConfusableMatcherCSInterop
 			return ret;
 		}
 
-		public unsafe (int Index, int Length) IndexOf(Span<byte> In, Span<byte> Contains, bool MatchRepeating, int StartIndexUtf8, int StatePushLimit = 1000)
+		public unsafe (int Index, int Length) IndexOf(Span<byte> In, Span<byte> Contains, bool MatchRepeating, int StartIndexUtf8, bool StartFromEnd = false, int StatePushLimit = 1000)
 		{
-			var res = StringIndexOf(CMHandle, (byte*)Unsafe.AsPointer(ref In.GetPinnableReference()), (byte*)Unsafe.AsPointer(ref Contains.GetPinnableReference()), MatchRepeating, StartIndexUtf8, StatePushLimit);
-			return ((int)(res & 0xFFFFFFFF), (int)(res >> 32));
+			var res = StringIndexOf(CMHandle, (byte*)Unsafe.AsPointer(ref In.GetPinnableReference()), (byte*)Unsafe.AsPointer(ref Contains.GetPinnableReference()), MatchRepeating, StartIndexUtf8, StartFromEnd, StatePushLimit);
+			return (res.First, res.Second);
 		}
 
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
@@ -180,7 +186,7 @@ namespace ConfusableMatcherCSInterop
 			return GetKeyMappings(utf8In);
 		}
 
-		public (int Index, int Length) IndexOf(string In, string Contains, bool MatchRepeating, int StartIndex, int StatePushLimit = 1000) => IndexOf(In, (ReadOnlySpan<char>)Contains, MatchRepeating, StartIndex, StatePushLimit);
+		public (int Index, int Length) IndexOf(string In, string Contains, bool MatchRepeating, int StartIndex, bool StartFromEnd = false, int StatePushLimit = 1000) => IndexOf(In, (ReadOnlySpan<char>)Contains, MatchRepeating, StartIndex, StartFromEnd, StatePushLimit);
 
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
 		private static extern void FreeConfusableMatcher(IntPtr In);
