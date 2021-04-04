@@ -1,9 +1,6 @@
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using System.Xml.Schema;
 using ConfusableMatcherCSInterop;
 using Xunit;
 
@@ -12,8 +9,8 @@ namespace UnitTests
 	public class UnitTests
 	{
 		[Fact]
-        public void Test1()
-        {
+		public void Test1()
+		{
 			var map = new List<(string Key, string Value)>();
 
 			map.Add(("N", "T"));
@@ -22,10 +19,10 @@ namespace UnitTests
 			map.Add(("E", "T"));
 
 			var matcher = new ConfusableMatcher(map, null);
-			var res = matcher.IndexOf("TEST", "NICE", false, 0);
+			var res = matcher.IndexOf("TEST", "NICE", CMOptions.Default);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(4, res.Length);
-        }
+		}
 
 		[Fact]
 		void Test2()
@@ -36,19 +33,23 @@ namespace UnitTests
 			map.Add(("V", "VO"));
 
 			var matcher = new ConfusableMatcher(map, null);
-			var res = matcher.IndexOf("VV", "VAVOVAVO", false, 0);
+			var res = matcher.IndexOf("VV", "VAVOVAVO", CMOptions.Default);
 			Assert.Equal(-1, res.Index);
 			Assert.Equal(-1, res.Length);
-			res = matcher.IndexOf("VAVOVAVO", "VV", false, 0);
+			res = matcher.IndexOf("VAVOVAVO", "VV", CMOptions.Default);
 			Assert.Equal(0, res.Index);
 			Assert.True(res.Length == 3 || res.Length == 4);
-			res = matcher.IndexOf("VAVOVAVO", "VV", false, 4);
+			CMOptions opts = CMOptions.Default;
+			opts.StartIndex = 4;
+			res = matcher.IndexOf("VAVOVAVO", "VV", opts);
 			Assert.Equal(4, res.Index);
 			Assert.True(res.Length == 3 || res.Length == 4);
-			res = matcher.IndexOf("VAVOVAVO", "VV", false, 2);
+			opts.StartIndex = 2;
+			res = matcher.IndexOf("VAVOVAVO", "VV", opts);
 			Assert.Equal(2, res.Index);
 			Assert.True(res.Length == 3 || res.Length == 4);
-			res = matcher.IndexOf("VAVOVAVO", "VV", false, 3);
+			opts.StartIndex = 3;
+			res = matcher.IndexOf("VAVOVAVO", "VV", opts);
 			Assert.Equal(4, res.Index);
 			Assert.True(res.Length == 3 || res.Length == 4);
 		}
@@ -62,7 +63,7 @@ namespace UnitTests
 			map.Add(("B", "\xFA\xFF"));
 
 			var matcher = new ConfusableMatcher(map, null);
-			var res = matcher.IndexOf("\x02\x03\xFA\xFF", "AB", false, 0);
+			var res = matcher.IndexOf("\x02\x03\xFA\xFF", "AB", CMOptions.Default);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(4, res.Length);
 		}
@@ -76,7 +77,10 @@ namespace UnitTests
 			map.Add(("D", "[)"));
 
 			var matcher = new ConfusableMatcher(map, new[] { "_", " " });
-			var res = matcher.IndexOf("A__ _ $$$[)D", "ASD", true, 0);
+			var opts = CMOptions.Default;
+			opts.MatchRepeating = true;
+
+			var res = matcher.IndexOf("A__ _ $$$[)D", "ASD", opts);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(11, res.Length);
 		}
@@ -91,7 +95,7 @@ namespace UnitTests
 			map.Add(("I", "/"));
 
 			var matcher = new ConfusableMatcher(map, null);
-			var res = matcher.IndexOf("/\\/CE", "NICE", false, 0);
+			var res = matcher.IndexOf("/\\/CE", "NICE", CMOptions.Default);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(5, res.Length);
 		}
@@ -105,14 +109,16 @@ namespace UnitTests
 			map.Add(("V", "\\/"));
 			map.Add(("I", "/"));
 
+			var opts = CMOptions.Default;
+			opts.MatchRepeating = true;
 			var matcher = new ConfusableMatcher(map, null);
-			var res = matcher.IndexOf("I/\\/AM", "INAN", true, 0);
+			var res = matcher.IndexOf("I/\\/AM", "INAN", opts);
 			Assert.Equal(-1, res.Index);
 			Assert.Equal(-1, res.Length);
-			res = matcher.IndexOf("I/\\/AM", "INAM", true, 0);
+			res = matcher.IndexOf("I/\\/AM", "INAM", opts);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(6, res.Length);
-			res = matcher.IndexOf("I/\\/AM", "IIVAM", true, 0);
+			res = matcher.IndexOf("I/\\/AM", "IIVAM", opts);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(6, res.Length);
 		}
@@ -167,8 +173,12 @@ namespace UnitTests
 			var map = GetDefaultMap();
 
 			var @in = "AAAAAAAAASSAFSAFNFNFNISFNSIFSIFJSDFUDSHF ASUF/|/__/|/___%/|/%I%%/|//|/%%%%%NNNN/|/NN__/|/N__𝘪G___%____$__G__𝓰𝘦Ѓ";
+
+			var opts = CMOptions.Default;
+			opts.MatchRepeating = true;
+
 			var matcher = new ConfusableMatcher(map, new[] { "_", "%", "$" });
-			var res = matcher.IndexOf(@in, "NIGGER", true, 0);
+			var res = matcher.IndexOf(@in, "NIGGER", opts);
 
 			Assert.True(
 				(res.Index == 64 && res.Length == 50) ||
@@ -211,17 +221,19 @@ namespace UnitTests
 				"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
 				"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z",
 				"U", "A", " ", "S", "M", "O", "L", "N", "A", "T", "I", "O", "N", "N", "I", "G", "N", "I", "FREE", "AE"
-		  	};
+			};
 			var vals = new[] {
 				"\U00000105", "\U0000ab31", "\U00001d43", "\U000000e5", "\U0000249d", "\U000000fc", "\U000000dc", "\U000000f6", "\U000000d6", "\U000000e4", "\U000000c4", "\U0000249c", "\U0000249e", "\U0000249f", "\U000024a0", "\U000024a1", "\U000024a2", "\U000024a3", "\U000024a4", "\U000024a5", "\U000024a6", "\U000024a7", "\U000024a8", "\U000024a9", "\U000024aa", "\U000024ab", "\U000024ac", "\U000024ad", "\U000024ae", "\U000024af", "\U000024b0", "\U000024b1", "\U000024b2", "\U000024b3", "\U000024b4", "\U000024cf", "\U000024d0", "\U000024d1", "\U000024d2", "\U000024d3", "\U000024d4", "\U000024d5", "\U000024d6", "\U000024d7", "\U000024d8", "\U000024d9", "\U000024da", "\U000024db", "\U000024dc", "\U000024dd", "\U000024de", "\U000024df", "\U000024e0", "\U000024e1", "\U000024e2", "\U000024e3", "\U000024e4", "\U000024e5", "\U000024e6", "\U000024e7", "\U000024e8", "\U000024e9", "\U000024ea", "\U0001d552", "\U0001d553", "\U0001d554", "\U0001d555", "\U0001d556", "\U0001d557", "\U0001d558", "\U0001d559", "\U0001d55a", "\U0001d55b", "\U0001d55c", "\U0001d55d", "\U0001d55e", "\U0001d55f", "\U0001d560", "\U0001d561", "\U0001d562", "\U0001d563", "\U0001d564", "\U0001d565", "\U0001d566", "\U0001d567", "\U0001d568", "\U0001d569", "\U0001d56a", "\U0001d56b", "\U0001f130", "\U0001f131", "\U0001f132", "\U0001f133", "\U0001f134", "\U0001f135", "\U0001f136", "\U0001f137", "\U0001f138", "\U0001f139", "\U0001f13a", "\U0001f13b", "\U0001f13c", "\U0001f13d", "\U0001f13e", "\U0001f13f", "\U0001f140", "\U0001f141", "\U0001f142", "\U0001f143", "\U0001f144", "\U0001f145", "\U0001f146", "\U0001f147", "\U0001f148", "\U0001f149", "\U000020b3", "\U00000e3f", "\U000020b5", "\U00000110", "\U00000246", "\U000020a3", "\U000020b2", "\U00002c67", "\U00000142", "\U0000004a", "\U000020ad", "\U00002c60", "\U000020a5", "\U000020a6", "\U000000d8", "\U000020b1", "\U00000051", "\U00002c64", "\U000020b4", "\U000020ae", "\U00000244", "\U00000056", "\U000020a9", "\U000004fe", "\U0000024e", "\U00002c6b", "\U0001d586", "\U0001d587", "\U0001d588", "\U0001d589", "\U0001d58a", "\U0001d58b", "\U0001d58c", "\U0001d58d", "\U0001d58e", "\U0001d58f", "\U0001d590", "\U0001d591", "\U0001d592", "\U0001d593", "\U0001d594", "\U0001d595", "\U0001d596", "\U0001d597", "\U0001d598", "\U0001d599", "\U0001d59a", "\U0001d59b", "\U0001d59c", "\U0001d59d", "\U0001d59e", "\U0001d59f", "\U0001f170", "\U0001f171", "\U0001f172", "\U0001f173", "\U0001f174", "\U0001f175", "\U0001f176", "\U0001f177", "\U0001f178", "\U0001f179", "\U0001f17a", "\U0001f17b", "\U0001f17c", "\U0001f17d", "\U0001f17e", "\U0001f17f", "\U0001f180", "\U0001f181", "\U0001f182", "\U0001f183", "\U0001f184", "\U0001f185", "\U0001f186", "\U0001f187", "\U0001f188", "\U0001f189", "\U0001f1fa", "\U0001f1e6", " ", "\U000002e2", "\U00001d50", "\U00001d52", "\U000002e1", "\U0000207f", "\U00001d43", "\U00001d57", "\U00001da6", "\U00001d52", "\U0000207f", "\U0000041d", "\U00000438", "\U00000433", "\U0001F1F3", "\U0001F1EE", "\U0001f193", "\U00001d2d"
-		  	};
+			};
 
 			for (var x = 0;x < keys.Length;x++)
 				map.Add((keys[x], vals[x]));
 
+			var opts = CMOptions.Default;
+			opts.MatchRepeating = true;
 			var matcher = new ConfusableMatcher(map, null);
 
-			var res = matcher.IndexOf(In, Contains, true, 0);
+			var res = matcher.IndexOf(In, Contains, opts);
 			Assert.Equal(res.Index, ExpectedIndex);
 			Assert.Equal(res.Length, ExpectedLength);
 		}
@@ -235,8 +247,7 @@ namespace UnitTests
 			var res = matcher.IndexOf(
 				"[̲̅a̲̅][̲̅b̲̅][̲̅c̲̅][̲̅d̲̅][̲̅e̲̅][̲̅f̲̅][̲̅g̲̅][̲̅h̲̅][̲̅i̲̅][̲̅j̲̅][̲̅k̲̅][̲̅l̲̅][̲̅m̲̅][̲̅n̲̅][̲̅o̲̅][̲̅p̲̅][̲̅q̲̅][̲̅r̲̅][̲̅s̲̅][̲̅t̲̅][̲̅u̲̅][̲̅v̲̅][̲̅w̲̅][̲̅x̲̅][̲̅y̲̅][̲̅z̲̅][̲̅0̲̅][̲̅1̲̅][̲̅2̲̅][̲̅3̲̅][̲̅4̲̅][̲̅5̲̅][̲̅6̲̅][̲̅7̲̅][̲̅8̲̅][̲̅9̲̅][̲̅0̲̅]",
 				"ABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890",
-				false,
-				0);
+				CMOptions.Default);
 			Assert.Equal(3, res.Index);
 			Assert.Equal(253, res.Length);
 		}
@@ -271,8 +282,7 @@ namespace UnitTests
 			var res = matcher.IndexOf(
 				"ABCDEFGHIJKLMNOPQRS",
 				"B",
-				false,
-				0);
+				CMOptions.Default);
 			Assert.Equal(0, res.Index);
 			Assert.True(res.Length >= 0 && res.Length == 1);
 
@@ -304,18 +314,18 @@ namespace UnitTests
 			res = matcher.IndexOf(
 				"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 				"BB",
-				false,
-				0);
+				CMOptions.Default);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(2, res.Length);
+
+			var opts = CMOptions.Default;
+			opts.MatchRepeating = true;
+			opts.StatePushLimit = 5000;
 
 			res = matcher.IndexOf(
 				"PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789",
 				"BBBBBBBBBBBBBBBBBBBBBBBBBBB",
-				true,
-				0,
-				false,
-				5000);
+				opts);
 			Assert.Equal(0, res.Index);
 			Assert.True(res.Length >= 0 && res.Length == 547);
 		}
@@ -323,13 +333,15 @@ namespace UnitTests
 		[Fact]
 		void Test10()
 		{
+			var opts = CMOptions.Default;
+			opts.MatchRepeating = true;
 			var map = new List<(string Key, string Value)>();
 			var matcher = new ConfusableMatcher(map, null);
-			var res = matcher.IndexOf(":)", "", true, 0);
+			var res = matcher.IndexOf(":)", "", opts);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(0, res.Length);
 
-			res = matcher.IndexOf("", ":)", true, 0);
+			res = matcher.IndexOf("", ":)", opts);
 			Assert.Equal(-1, res.Index);
 			Assert.Equal(-1, res.Length);
 		}
@@ -340,12 +352,12 @@ namespace UnitTests
 			var map = new List<(string Key, string Value)>();
 			var matcher = new ConfusableMatcher(map, null);
 
-			var res = matcher.IndexOf("A", "A", false, 0);
+			var res = matcher.IndexOf("A", "A", CMOptions.Default);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(1, res.Length);
 
 			var matcher2 = new ConfusableMatcher(map, null, false);
-			res = matcher2.IndexOf("A", "A", false, 0);
+			res = matcher2.IndexOf("A", "A", CMOptions.Default);
 			Assert.Equal(-1, res.Index);
 			Assert.Equal(-1, res.Length);
 		}
@@ -356,63 +368,68 @@ namespace UnitTests
 			var map = new List<(string Key, string Value)>();
 			var matcher = new ConfusableMatcher(map, new[] { "B", " ", "C" });
 
-			var res = matcher.IndexOf("AB CD", "ABCD", false, 0);
+			var res = matcher.IndexOf("AB CD", "ABCD", CMOptions.Default);
 			Assert.Equal(0, res.Index);
 			Assert.Equal(5, res.Length);
 		}
 
-        [Fact]
-        void Test13()
-        {
-            var map = new List<(string Key, string Value)>() {
-                ("N", "/\\/") 
-            };
-            var ignoreList = new List<string>();
-            var matcher = new ConfusableMatcher(map, null);
-            bool running = true;
-            var @lock = new object();
+		[Fact]
+		void Test13()
+		{
+			var opts = CMOptions.Default;
+			opts.MatchRepeating = true;
+			var map = new List<(string Key, string Value)>() {
+				("N", "/\\/") 
+			};
+			var ignoreList = new List<string>();
+			var matcher = new ConfusableMatcher(map, null);
+			bool running = true;
+			var @lock = new object();
 
-            var t1 = new Thread(() => {
-                while (running) {
-                    lock (@lock) {
-                        matcher.IndexOf("/\\/", "N", true, 0);
-                    }
-                }
-            });
+			var t1 = new Thread(() => {
+				while (running) {
+					lock (@lock) {
+						matcher.IndexOf("/\\/", "N", opts);
+					}
+				}
+			});
 
-            var t2 = new Thread(() => {
-                while (running) {
-                    lock (@lock) {
-                        if (matcher != null)
-                            matcher.Dispose();
+			var t2 = new Thread(() => {
+				while (running) {
+					lock (@lock) {
+						if (matcher != null)
+							matcher.Dispose();
 
-                        matcher = new ConfusableMatcher(map, null, true);
-                    }
+						matcher = new ConfusableMatcher(map, null, true);
+					}
 
-                    Thread.Sleep(500);
-                }
-            });
+					Thread.Sleep(500);
+				}
+			});
 
-            t1.Start();
-            t2.Start();
+			t1.Start();
+			t2.Start();
 
-            Thread.Sleep(10000);
+			Thread.Sleep(10000);
 
-            running = false;
-            t1.Join();
-            t2.Join();
+			running = false;
+			t1.Join();
+			t2.Join();
 		}
 
 		[Fact]
 		void Test14()
 		{
+			var opts = CMOptions.Default;
+			opts.StartIndex = 2;
 			var map = new List<(string Key, string Value)>() {
 				("⿌", "⿌"),
 				("⎀", "⎀")
 			};
+
 			var matcher = new ConfusableMatcher(map, null);
 
-			var res = matcher.IndexOf("碐랩⿌⎀ꅉᚲ콅讷鷪", "⿌⎀", false, 2);
+			var res = matcher.IndexOf("碐랩⿌⎀ꅉᚲ콅讷鷪", "⿌⎀", opts);
 			Assert.Equal(2, res.Index);
 			Assert.Equal(2, res.Length);
 		}
@@ -426,9 +443,6 @@ namespace UnitTests
 				("C", "1")
 			};
 			var matcher = new ConfusableMatcher(map, null, false);
-
-			/*bool a = false;
-			while (!a) System.Threading.Thread.Sleep(1);*/
 
 			Assert.Equal(new[] { "1" }, matcher.GetKeyMappings("A"));
 			Assert.Equal(new[] { "1" }, matcher.GetKeyMappings("B"));
@@ -468,15 +482,152 @@ namespace UnitTests
 		{
 			var map = GetDefaultMap();
 
+			var opts = CMOptions.Default;
+			opts.StatePushLimit = 20;
+			opts.MatchRepeating = true;
 			var matcher = new ConfusableMatcher(map, null);
 
 			var In = "ASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASB";
 
-			var res = matcher.IndexOf(In, "ASB", true, 0, false, 20);
+			var res = matcher.IndexOf(In, "ASB", opts);
 			Assert.Equal((-2, -2), res);
 
-			res = matcher.IndexOf(In, "ASB", true, In.Length - 1, true, 20);
+			opts.StartFromEnd = true;
+			opts.StartIndex = (nuint)In.Length - 1;
+			res = matcher.IndexOf(In, "ASB", opts);
 			Assert.Equal((92, 3), res);
+		}
+
+		[Fact]
+		void Test19()
+		{
+			var map = GetDefaultMap();
+
+			var opts = CMOptions.Default;
+			opts.MatchRepeating = true;
+			opts.StatePushLimit = 2000;
+			var matcher = new ConfusableMatcher(map, new[] { "̇", "̸" });
+
+			var In = "Ṅ̸iggęr";
+
+			var res = matcher.IndexOf(In, "NIGGER", opts);
+			Assert.Equal((0, 8), res);
+		}
+
+		[Fact]
+		void Test31()
+		{
+			var map = new List<(string Key, string Value)>();
+
+			var opts = CMOptions.Default;
+			opts.MatchOnWordBoundary = true;
+
+			var matcher = new ConfusableMatcher(map, null);
+			var res = matcher.IndexOf("X", "X", opts);
+			Assert.Equal((0, 1), res);
+
+			res = matcher.IndexOf("aX", "X", opts);
+			Assert.Equal((-3, -3), res);
+
+			res = matcher.IndexOf("Xa", "X", opts);
+			Assert.Equal((-4, -4), res);
+
+			res = matcher.IndexOf("a X", "X", opts);
+			Assert.Equal((2, 1), res);
+
+			res = matcher.IndexOf("X a", "X", opts);
+			Assert.Equal((0, 1), res);
+
+			res = matcher.IndexOf("X;duper", "X", opts);
+			Assert.Equal((0, 1), res);
+
+			res = matcher.IndexOf("yes\uFEFFX", "X", opts);
+			Assert.Equal((4, 1), res);
+		}
+
+		[Fact]
+		void Test32()
+		{
+			var map = new List<(string Key, string Value)>();
+
+			var opts = CMOptions.Default;
+			opts.MatchOnWordBoundary = true;
+			opts.MatchRepeating = true;
+
+			var matcher = new ConfusableMatcher(map, null);
+
+			var res = matcher.IndexOf("QQQ", "Q", opts);
+			Assert.Equal((0, 3), res);
+
+			res = matcher.IndexOf("aQQQ", "Q", opts);
+			Assert.Equal((-3, -3), res);
+
+			res = matcher.IndexOf("QQQa", "Q", opts);
+			Assert.True((-3, -3) == res || (-4, -4) == res);
+
+			res = matcher.IndexOf("a QQQ", "Q", opts);
+			Assert.Equal((2, 3), res);
+
+			res = matcher.IndexOf("QQQ a", "Q", opts);
+			Assert.Equal((0, 3), res);
+
+			res = matcher.IndexOf("QQQ;duper", "Q", opts);
+			Assert.Equal((0, 3), res);
+
+			res = matcher.IndexOf("yes\u202FQQQ", "Q", opts);
+			Assert.Equal((4, 3), res);
+		}
+
+		[Fact]
+		void Test33()
+		{
+			var map = new List<(string Key, string Value)>();
+			var @in = "a QBQQ";
+
+			var opts = CMOptions.Default;
+			opts.MatchOnWordBoundary = true;
+			opts.MatchRepeating = true;
+			opts.StartFromEnd = true;
+			opts.StartIndex = (nuint)@in.Length - 1;
+
+			var matcher = new ConfusableMatcher(map, new[] { "B" });
+
+			var res = matcher.IndexOf(@in, "Q", opts);
+
+			Assert.Equal((2, 4), res);
+		}
+
+		[Fact]
+		void Test34()
+		{
+			var map = new List<(string Key, string Value)>();
+
+			var opts = CMOptions.Default;
+			opts.MatchOnWordBoundary = true;
+			opts.MatchRepeating = true;
+
+			var matcher = new ConfusableMatcher(map, null);
+
+			var res = matcher.IndexOf("SUPER", "SUPER", opts);
+			Assert.Equal((0, 5), res);
+
+			res = matcher.IndexOf("aSUPER", "SUPER", opts);
+			Assert.Equal((-3, -3), res);
+
+			res = matcher.IndexOf("SUPERa", "SUPER", opts);
+			Assert.Equal((-4, -4), res);
+
+			res = matcher.IndexOf("a SUPER", "SUPER", opts);
+			Assert.Equal((2, 5), res);
+
+			res = matcher.IndexOf("SUPER a", "SUPER", opts);
+			Assert.Equal((0, 5), res);
+
+			res = matcher.IndexOf("SUPER;duper", "SUPER", opts);
+			Assert.Equal((0, 5), res);
+
+			res = matcher.IndexOf("yes\u202FSUPER", "SUPER", opts);
+			Assert.Equal((4, 5), res);
 		}
 	}
 }
