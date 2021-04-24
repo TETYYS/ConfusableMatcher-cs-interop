@@ -4,10 +4,40 @@ using System.Threading;
 using ConfusableMatcherCSInterop;
 using Xunit;
 
+using static ConfusableMatcherCSInterop.ConfusableMatcher;
+
 namespace UnitTests
 {
 	public class UnitTests
 	{
+		void AssertMatch(CMReturn In, int Start, int Size, CM_RETURN_STATUS Status = CM_RETURN_STATUS.MATCH)
+		{
+			Assert.Equal(Status, In.Status);
+			Assert.Equal(Start, (int)In.Start);
+			Assert.Equal(Size, (int)In.Size);
+		}
+
+		void AssertMatchMulti(CMReturn In, int[] Start, int[] Size, CM_RETURN_STATUS Status = CM_RETURN_STATUS.MATCH)
+		{
+			Assert.Equal(Status, In.Status);
+			Assert.Equal(Start.Length, Size.Length);
+
+			bool ok = false;
+			for (var x = 0;x < Start.Length;x++) {
+				if (Start[x] == (int)In.Start && Size[x] == (int)In.Size) {
+					ok = true;
+					break;
+				}
+			}
+
+			Assert.True(ok);
+		}
+
+		void AssertNoMatch(CMReturn In)
+		{
+			Assert.Equal(CM_RETURN_STATUS.NO_MATCH, In.Status);
+		}
+
 		[Fact]
 		public void Test1()
 		{
@@ -20,8 +50,7 @@ namespace UnitTests
 
 			var matcher = new ConfusableMatcher(map, null);
 			var res = matcher.IndexOf("TEST", "NICE", CMOptions.Default);
-			Assert.Equal(0, res.Index);
-			Assert.Equal(4, res.Length);
+			AssertMatch(res, 0, 4);
 		}
 
 		[Fact]
@@ -34,24 +63,19 @@ namespace UnitTests
 
 			var matcher = new ConfusableMatcher(map, null);
 			var res = matcher.IndexOf("VV", "VAVOVAVO", CMOptions.Default);
-			Assert.Equal(-1, res.Index);
-			Assert.Equal(-1, res.Length);
+			AssertNoMatch(res);
 			res = matcher.IndexOf("VAVOVAVO", "VV", CMOptions.Default);
-			Assert.Equal(0, res.Index);
-			Assert.True(res.Length == 3 || res.Length == 4);
+			AssertMatchMulti(res, new[] { 0, 0 }, new[] { 3, 4 });
 			CMOptions opts = CMOptions.Default;
 			opts.StartIndex = 4;
 			res = matcher.IndexOf("VAVOVAVO", "VV", opts);
-			Assert.Equal(4, res.Index);
-			Assert.True(res.Length == 3 || res.Length == 4);
+			AssertMatchMulti(res, new[] { 4, 4 }, new[] { 3, 4 });
 			opts.StartIndex = 2;
 			res = matcher.IndexOf("VAVOVAVO", "VV", opts);
-			Assert.Equal(2, res.Index);
-			Assert.True(res.Length == 3 || res.Length == 4);
+			AssertMatchMulti(res, new[] { 2, 2 }, new[] { 3, 4 });
 			opts.StartIndex = 3;
 			res = matcher.IndexOf("VAVOVAVO", "VV", opts);
-			Assert.Equal(4, res.Index);
-			Assert.True(res.Length == 3 || res.Length == 4);
+			AssertMatchMulti(res, new[] { 4, 4 }, new[] { 3, 4 });
 		}
 
 		[Fact]
@@ -64,8 +88,7 @@ namespace UnitTests
 
 			var matcher = new ConfusableMatcher(map, null);
 			var res = matcher.IndexOf("\x02\x03\xFA\xFF", "AB", CMOptions.Default);
-			Assert.Equal(0, res.Index);
-			Assert.Equal(4, res.Length);
+			AssertMatch(res, 0, 4);
 		}
 
 		[Fact]
@@ -81,8 +104,7 @@ namespace UnitTests
 			opts.MatchRepeating = true;
 
 			var res = matcher.IndexOf("A__ _ $$$[)D", "ASD", opts);
-			Assert.Equal(0, res.Index);
-			Assert.Equal(11, res.Length);
+			AssertMatch(res, 0, 11);
 		}
 
 		[Fact]
@@ -96,8 +118,7 @@ namespace UnitTests
 
 			var matcher = new ConfusableMatcher(map, null);
 			var res = matcher.IndexOf("/\\/CE", "NICE", CMOptions.Default);
-			Assert.Equal(0, res.Index);
-			Assert.Equal(5, res.Length);
+			AssertMatch(res, 0, 5);
 		}
 
 		[Fact]
@@ -113,14 +134,11 @@ namespace UnitTests
 			opts.MatchRepeating = true;
 			var matcher = new ConfusableMatcher(map, null);
 			var res = matcher.IndexOf("I/\\/AM", "INAN", opts);
-			Assert.Equal(-1, res.Index);
-			Assert.Equal(-1, res.Length);
+			AssertNoMatch(res);
 			res = matcher.IndexOf("I/\\/AM", "INAM", opts);
-			Assert.Equal(0, res.Index);
-			Assert.Equal(6, res.Length);
+			AssertMatch(res, 0, 6);
 			res = matcher.IndexOf("I/\\/AM", "IIVAM", opts);
-			Assert.Equal(0, res.Index);
-			Assert.Equal(6, res.Length);
+			AssertMatch(res, 0, 6);
 		}
 
 		List<(string Key, string Value)> GetDefaultMap()
@@ -179,10 +197,7 @@ namespace UnitTests
 
 			var matcher = new ConfusableMatcher(map, new[] { "_", "%", "$" });
 			var res = matcher.IndexOf(@in, "NIGGER", opts);
-
-			Assert.True(
-				(res.Index == 64 && res.Length == 50) ||
-				(res.Index == 89 && res.Length == 25));
+			AssertMatchMulti(res, new[] { 64, 89 }, new[] { 50, 25 });
 		}
 
 		[Theory]
@@ -234,8 +249,7 @@ namespace UnitTests
 			var matcher = new ConfusableMatcher(map, null);
 
 			var res = matcher.IndexOf(In, Contains, opts);
-			Assert.Equal(res.Index, ExpectedIndex);
-			Assert.Equal(res.Length, ExpectedLength);
+			AssertMatch(res, ExpectedIndex, ExpectedLength);
 		}
 
 		[Fact]
@@ -248,8 +262,7 @@ namespace UnitTests
 				"[̲̅a̲̅][̲̅b̲̅][̲̅c̲̅][̲̅d̲̅][̲̅e̲̅][̲̅f̲̅][̲̅g̲̅][̲̅h̲̅][̲̅i̲̅][̲̅j̲̅][̲̅k̲̅][̲̅l̲̅][̲̅m̲̅][̲̅n̲̅][̲̅o̲̅][̲̅p̲̅][̲̅q̲̅][̲̅r̲̅][̲̅s̲̅][̲̅t̲̅][̲̅u̲̅][̲̅v̲̅][̲̅w̲̅][̲̅x̲̅][̲̅y̲̅][̲̅z̲̅][̲̅0̲̅][̲̅1̲̅][̲̅2̲̅][̲̅3̲̅][̲̅4̲̅][̲̅5̲̅][̲̅6̲̅][̲̅7̲̅][̲̅8̲̅][̲̅9̲̅][̲̅0̲̅]",
 				"ABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890",
 				CMOptions.Default);
-			Assert.Equal(3, res.Index);
-			Assert.Equal(253, res.Length);
+			AssertMatch(res, 3, 253);
 		}
 
 		[Fact]
@@ -283,8 +296,7 @@ namespace UnitTests
 				"ABCDEFGHIJKLMNOPQRS",
 				"B",
 				CMOptions.Default);
-			Assert.Equal(0, res.Index);
-			Assert.True(res.Length >= 0 && res.Length == 1);
+			AssertMatchMulti(res, new[] { 0, 0 }, new[] { 1, 1 });
 
 			map.Remove(("B", "ABCDEFGHIJKLMNOP"));
 			map.Add(("B", "P"));
@@ -315,8 +327,7 @@ namespace UnitTests
 				"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
 				"BB",
 				CMOptions.Default);
-			Assert.Equal(0, res.Index);
-			Assert.Equal(2, res.Length);
+			AssertMatch(res, 0, 2);
 
 			var opts = CMOptions.Default;
 			opts.MatchRepeating = true;
@@ -326,8 +337,7 @@ namespace UnitTests
 				"PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789PQRSTUVWXYZ0123456789",
 				"BBBBBBBBBBBBBBBBBBBBBBBBBBB",
 				opts);
-			Assert.Equal(0, res.Index);
-			Assert.True(res.Length >= 0 && res.Length == 547);
+			AssertMatch(res, 0, 547);
 		}
 
 		[Fact]
@@ -338,12 +348,10 @@ namespace UnitTests
 			var map = new List<(string Key, string Value)>();
 			var matcher = new ConfusableMatcher(map, null);
 			var res = matcher.IndexOf(":)", "", opts);
-			Assert.Equal(0, res.Index);
-			Assert.Equal(0, res.Length);
+			AssertMatch(res, 0, 0);
 
 			res = matcher.IndexOf("", ":)", opts);
-			Assert.Equal(-1, res.Index);
-			Assert.Equal(-1, res.Length);
+			AssertNoMatch(res);
 		}
 
 		[Fact]
@@ -353,13 +361,11 @@ namespace UnitTests
 			var matcher = new ConfusableMatcher(map, null);
 
 			var res = matcher.IndexOf("A", "A", CMOptions.Default);
-			Assert.Equal(0, res.Index);
-			Assert.Equal(1, res.Length);
+			AssertMatch(res, 0, 1);
 
 			var matcher2 = new ConfusableMatcher(map, null, false);
 			res = matcher2.IndexOf("A", "A", CMOptions.Default);
-			Assert.Equal(-1, res.Index);
-			Assert.Equal(-1, res.Length);
+			AssertNoMatch(res);
 		}
 
 		[Fact]
@@ -369,8 +375,7 @@ namespace UnitTests
 			var matcher = new ConfusableMatcher(map, new[] { "B", " ", "C" });
 
 			var res = matcher.IndexOf("AB CD", "ABCD", CMOptions.Default);
-			Assert.Equal(0, res.Index);
-			Assert.Equal(5, res.Length);
+			AssertMatch(res, 0, 5);
 		}
 
 		[Fact]
@@ -430,8 +435,7 @@ namespace UnitTests
 			var matcher = new ConfusableMatcher(map, null);
 
 			var res = matcher.IndexOf("碐랩⿌⎀ꅉᚲ콅讷鷪", "⿌⎀", opts);
-			Assert.Equal(2, res.Index);
-			Assert.Equal(2, res.Length);
+			AssertMatch(res, 2, 2);
 		}
 
 		[Fact]
@@ -490,12 +494,12 @@ namespace UnitTests
 			var In = "ASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASASB";
 
 			var res = matcher.IndexOf(In, "ASB", opts);
-			Assert.Equal((-2, -2), res);
+			Assert.Equal(CM_RETURN_STATUS.STATE_PUSH_LIMIT_EXCEEDED, res.Status);
 
 			opts.StartFromEnd = true;
 			opts.StartIndex = (nuint)In.Length - 1;
 			res = matcher.IndexOf(In, "ASB", opts);
-			Assert.Equal((92, 3), res);
+			AssertMatch(res, 92, 3);
 		}
 
 		[Fact]
@@ -511,7 +515,7 @@ namespace UnitTests
 			var In = "Ṅ̸iggęr";
 
 			var res = matcher.IndexOf(In, "NIGGER", opts);
-			Assert.Equal((0, 8), res);
+			AssertMatch(res, 0, 8);
 		}
 
 		[Fact]
@@ -524,25 +528,25 @@ namespace UnitTests
 
 			var matcher = new ConfusableMatcher(map, null);
 			var res = matcher.IndexOf("X", "X", opts);
-			Assert.Equal((0, 1), res);
+			AssertMatch(res, 0, 1);
 
 			res = matcher.IndexOf("aX", "X", opts);
-			Assert.Equal((-3, -3), res);
+			AssertMatch(res, 1, 1, CM_RETURN_STATUS.WORD_BOUNDARY_FAIL_START);
 
 			res = matcher.IndexOf("Xa", "X", opts);
-			Assert.Equal((-4, -4), res);
+			AssertMatch(res, 0, 1, CM_RETURN_STATUS.WORD_BOUNDARY_FAIL_END);
 
 			res = matcher.IndexOf("a X", "X", opts);
-			Assert.Equal((2, 1), res);
+			AssertMatch(res, 2, 1);
 
 			res = matcher.IndexOf("X a", "X", opts);
-			Assert.Equal((0, 1), res);
+			AssertMatch(res, 0, 1);
 
 			res = matcher.IndexOf("X;duper", "X", opts);
-			Assert.Equal((0, 1), res);
+			AssertMatch(res, 0, 1);
 
 			res = matcher.IndexOf("yes\uFEFFX", "X", opts);
-			Assert.Equal((4, 1), res);
+			AssertMatch(res, 4, 1);
 		}
 
 		[Fact]
@@ -557,25 +561,27 @@ namespace UnitTests
 			var matcher = new ConfusableMatcher(map, null);
 
 			var res = matcher.IndexOf("QQQ", "Q", opts);
-			Assert.Equal((0, 3), res);
+			AssertMatch(res, 0, 3);
 
 			res = matcher.IndexOf("aQQQ", "Q", opts);
-			Assert.Equal((-3, -3), res);
+			Assert.True(res.Status == CM_RETURN_STATUS.WORD_BOUNDARY_FAIL_START || res.Status == CM_RETURN_STATUS.WORD_BOUNDARY_FAIL_END);
+			AssertMatchMulti(res, new[] { 1, 1, 1, 2, 2, 3 }, new[] { 1, 2, 3, 1, 2, 1 }, res.Status);
 
 			res = matcher.IndexOf("QQQa", "Q", opts);
-			Assert.True((-3, -3) == res || (-4, -4) == res);
+			Assert.True(res.Status == CM_RETURN_STATUS.WORD_BOUNDARY_FAIL_START || res.Status == CM_RETURN_STATUS.WORD_BOUNDARY_FAIL_END);
+			AssertMatchMulti(res, new[] { 0, 0, 0, 1, 1, 2 }, new[] { 1, 2, 3, 1, 2, 1 }, res.Status);
 
 			res = matcher.IndexOf("a QQQ", "Q", opts);
-			Assert.Equal((2, 3), res);
+			AssertMatch(res, 2, 3);
 
 			res = matcher.IndexOf("QQQ a", "Q", opts);
-			Assert.Equal((0, 3), res);
+			AssertMatch(res, 0, 3);
 
 			res = matcher.IndexOf("QQQ;duper", "Q", opts);
-			Assert.Equal((0, 3), res);
+			AssertMatch(res, 0, 3);
 
 			res = matcher.IndexOf("yes\u202FQQQ", "Q", opts);
-			Assert.Equal((4, 3), res);
+			AssertMatch(res, 4, 3);
 		}
 
 		[Fact]
@@ -593,8 +599,7 @@ namespace UnitTests
 			var matcher = new ConfusableMatcher(map, new[] { "B" });
 
 			var res = matcher.IndexOf(@in, "Q", opts);
-
-			Assert.Equal((2, 4), res);
+			AssertMatch(res, 2, 4);
 		}
 
 		[Fact]
@@ -609,25 +614,25 @@ namespace UnitTests
 			var matcher = new ConfusableMatcher(map, null);
 
 			var res = matcher.IndexOf("SUPER", "SUPER", opts);
-			Assert.Equal((0, 5), res);
+			AssertMatch(res, 0, 5);
 
 			res = matcher.IndexOf("aSUPER", "SUPER", opts);
-			Assert.Equal((-3, -3), res);
+			AssertMatch(res, 1, 5, CM_RETURN_STATUS.WORD_BOUNDARY_FAIL_START);
 
 			res = matcher.IndexOf("SUPERa", "SUPER", opts);
-			Assert.Equal((-4, -4), res);
+			AssertMatch(res, 0, 5, CM_RETURN_STATUS.WORD_BOUNDARY_FAIL_END);
 
 			res = matcher.IndexOf("a SUPER", "SUPER", opts);
-			Assert.Equal((2, 5), res);
+			AssertMatch(res, 2, 5);
 
 			res = matcher.IndexOf("SUPER a", "SUPER", opts);
-			Assert.Equal((0, 5), res);
+			AssertMatch(res, 0, 5);
 
 			res = matcher.IndexOf("SUPER;duper", "SUPER", opts);
-			Assert.Equal((0, 5), res);
+			AssertMatch(res, 0, 5);
 
 			res = matcher.IndexOf("yes\u202FSUPER", "SUPER", opts);
-			Assert.Equal((4, 5), res);
+			AssertMatch(res, 4, 5);
 		}
 	}
 }

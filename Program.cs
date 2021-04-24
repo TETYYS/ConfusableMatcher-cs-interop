@@ -45,10 +45,27 @@ namespace ConfusableMatcherCSInterop
 			public uint Size;
 		}
 
-		struct CMIntPair
+		public enum CM_RETURN_STATUS
 		{
-			public int First;
-			public int Second;
+			MATCH = 0,
+			NO_MATCH = 1,
+			STATE_PUSH_LIMIT_EXCEEDED = 2,
+			WORD_BOUNDARY_FAIL_START = 3,
+			WORD_BOUNDARY_FAIL_END = 4
+		}
+
+		public struct CMReturn
+		{
+			public ulong Start;
+			public ulong Size;
+			public CM_RETURN_STATUS Status;
+
+			public CMReturn(ulong Start, ulong Size, CM_RETURN_STATUS Status)
+			{
+				this.Start = Start;
+				this.Size = Size;
+				this.Status = Status;
+			}
 		}
 
 		private readonly IntPtr CMHandle;
@@ -113,9 +130,9 @@ namespace ConfusableMatcherCSInterop
 		}
 
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
-		private static unsafe extern CMIntPair StringIndexOf(IntPtr CM, byte *In, [MarshalAs(UnmanagedType.LPUTF8Str)] string Contains, CMOptions Options);
+		private static unsafe extern CMReturn StringIndexOf(IntPtr CM, byte *In, [MarshalAs(UnmanagedType.LPUTF8Str)] string Contains, CMOptions Options);
 
-		public (int Index, int Length) IndexOf(ReadOnlySpan<char> In, string Contains, CMOptions Options)
+		public CMReturn IndexOf(ReadOnlySpan<char> In, string Contains, CMOptions Options)
 		{
 			if (Options.StartIndex != 0) {
 				// Convert StartIndex in UTF8 terms
@@ -129,20 +146,20 @@ namespace ConfusableMatcherCSInterop
 
 			var ret = IndexOf(utf8In, Contains, Options);
 
-			if (ret.Index >= 0) {
-				var start = utf8In[..ret.Index];
-				var matchedPart = utf8In[ret.Index..(ret.Index+ret.Length)];
+			if (ret.Start >= 0) {
+				var start = utf8In[..(int)ret.Start];
+				var matchedPart = utf8In[(int)ret.Start..((int)ret.Start+(int)ret.Size)];
 
-				return (Encoding.UTF8.GetCharCount(start), Encoding.UTF8.GetCharCount(matchedPart));
+				return new CMReturn((ulong)Encoding.UTF8.GetCharCount(start), (ulong)Encoding.UTF8.GetCharCount(matchedPart), ret.Status);
 			}
 
 			return ret;
 		}
 
-		public unsafe (int Index, int Length) IndexOf(Span<byte> In, string Contains, CMOptions Options)
+		public unsafe CMReturn IndexOf(Span<byte> In, string Contains, CMOptions Options)
 		{
 			var res = StringIndexOf(CMHandle, (byte*)Unsafe.AsPointer(ref In.GetPinnableReference()), Contains, Options);
-			return (res.First, res.Second);
+			return res;
 		}
 
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
