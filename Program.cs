@@ -10,21 +10,23 @@ namespace ConfusableMatcherCSInterop
 	public struct CMOptions
 	{
 		public bool MatchRepeating;
-		public nuint StartIndex;
+		public ulong StartIndex;
 		public bool StartFromEnd;
-		public nuint StatePushLimit;
+		public ulong StatePushLimit;
 		public bool MatchOnWordBoundary;
+		public IntPtr ContainsPosPointers;
 
-		public CMOptions(bool MatchRepeating, nuint StartIndex, bool StartFromEnd, nuint StatePushLimit, bool MatchOnWordBoundary)
+		public CMOptions(bool MatchRepeating, ulong StartIndex, bool StartFromEnd, ulong StatePushLimit, bool MatchOnWordBoundary, IntPtr ContainsPosPointers)
 		{
 			this.MatchRepeating = MatchRepeating;
 			this.StartIndex = StartIndex;
 			this.StartFromEnd = StartFromEnd;
 			this.StatePushLimit = StatePushLimit;
 			this.MatchOnWordBoundary = MatchOnWordBoundary;
+			this.ContainsPosPointers = ContainsPosPointers;
 		}
 
-		public static CMOptions Default => new CMOptions(false, 0, false, 1000, false);
+		public static CMOptions Default => new CMOptions(false, 0, false, 1000, false, IntPtr.Zero);
 	}
 
 	public class ConfusableMatcher : IDisposable
@@ -189,6 +191,22 @@ namespace ConfusableMatcherCSInterop
 			}
 
 			return ret;
+		}
+
+		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
+		private static extern IntPtr ComputeStringPosPointers(IntPtr CM, [MarshalAs(UnmanagedType.LPUTF8Str)] string Contains);
+
+		public IntPtr ComputeStringPosPointers(string Contains)
+		{
+			return ComputeStringPosPointers(CMHandle, Contains);
+		}
+
+		[DllImport("ConfusableMatcher", EntryPoint = "FreeStringPosPointers", CallingConvention = CallingConvention.Cdecl)]
+		private static extern void FreeStringPosPtr(IntPtr StringPosPointers);
+
+		public void FreeStringPosPointers(IntPtr StringPosPointers)
+		{
+			FreeStringPosPtr(StringPosPointers);
 		}
 
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
