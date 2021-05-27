@@ -12,21 +12,21 @@ namespace ConfusableMatcherCSInterop
 		public bool MatchRepeating;
 		public ulong StartIndex;
 		public bool StartFromEnd;
-		public ulong StatePushLimit;
+		public ulong TimeoutNs;
 		public bool MatchOnWordBoundary;
 		public IntPtr ContainsPosPointers;
 
-		public CMOptions(bool MatchRepeating, ulong StartIndex, bool StartFromEnd, ulong StatePushLimit, bool MatchOnWordBoundary, IntPtr ContainsPosPointers)
+		public CMOptions(bool MatchRepeating, ulong StartIndex, bool StartFromEnd, ulong TimeoutNs, bool MatchOnWordBoundary, IntPtr ContainsPosPointers)
 		{
 			this.MatchRepeating = MatchRepeating;
 			this.StartIndex = StartIndex;
 			this.StartFromEnd = StartFromEnd;
-			this.StatePushLimit = StatePushLimit;
+			this.TimeoutNs = TimeoutNs;
 			this.MatchOnWordBoundary = MatchOnWordBoundary;
 			this.ContainsPosPointers = ContainsPosPointers;
 		}
 
-		public static CMOptions Default => new CMOptions(false, 0, false, 1000, false, IntPtr.Zero);
+		public static CMOptions Default => new CMOptions(false, 0, false, 1000000, false, IntPtr.Zero);
 	}
 
 	public class ConfusableMatcher : IDisposable
@@ -51,7 +51,7 @@ namespace ConfusableMatcherCSInterop
 		{
 			MATCH = 0,
 			NO_MATCH = 1,
-			STATE_PUSH_LIMIT_EXCEEDED = 2,
+			TIMEOUT = 2,
 			WORD_BOUNDARY_FAIL_START = 3,
 			WORD_BOUNDARY_FAIL_END = 4
 		}
@@ -168,6 +168,10 @@ namespace ConfusableMatcherCSInterop
 		private static unsafe extern uint GetKeyMappings(IntPtr CM, [MarshalAs(UnmanagedType.LPUTF8Str)] string In, byte* Output, uint OutputSize);
 		public unsafe List<string> GetKeyMappings(string In)
 		{
+			if (In == null) {
+				throw new ArgumentNullException(nameof(In));
+			}
+
 			byte* outputPtr = stackalloc byte[IntPtr.Size * 32];
 
 			var sz = GetKeyMappings(CMHandle, In, outputPtr, 32);
