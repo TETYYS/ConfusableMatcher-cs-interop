@@ -32,7 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ConfusableMatcher" Version="1.0.14" />
+    <PackageReference Include="ConfusableMatcher" Version="1.0.15" />
   </ItemGroup>
 
 </Project>
