@@ -634,5 +634,21 @@ namespace UnitTests
 			res = matcher.IndexOf("yes\u202FSUPER", "SUPER", opts);
 			AssertMatch(res, 4, 5);
 		}
+
+		[Fact]
+		void Test35()
+		{
+			var map = GetDefaultMap();
+
+			var opts = CMOptions.Default;
+			opts.MatchOnWordBoundary = true;
+			opts.MatchRepeating = true;
+
+			var matcher = new ConfusableMatcher(map, null);
+
+			for (var x = 0;x < 10000;x++) {
+				matcher.GetKeyMappings("N");
+			}
+		}
 	}
 }

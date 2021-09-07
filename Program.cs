@@ -160,8 +160,10 @@ namespace ConfusableMatcherCSInterop
 
 		public unsafe CMReturn IndexOf(Span<byte> In, string Contains, CMOptions Options)
 		{
-			var res = StringIndexOf(CMHandle, (byte*)Unsafe.AsPointer(ref In.GetPinnableReference()), Contains, Options);
-			return res;
+			fixed (byte* p = In) {
+				var res = StringIndexOf(CMHandle, p, Contains, Options);
+				return res;
+			}
 		}
 
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
@@ -172,29 +174,34 @@ namespace ConfusableMatcherCSInterop
 				throw new ArgumentNullException(nameof(In));
 			}
 
+			static List<string> Get(byte* pBuffer, int Size)
+			{
+				var ret = new List<string>(Size);
+				for (var x = 0;x < Size;x++) {
+					var arrPtr = (byte**)pBuffer;
+
+					int strSz = 0;
+					while (arrPtr[x][++strSz] != 0x00);
+
+					var copy = Encoding.UTF8.GetString(arrPtr[x], strSz);
+					ret.Add(copy);
+				}
+
+				return ret;
+			}
+
 			byte* outputPtr = stackalloc byte[IntPtr.Size * 32];
 
 			var sz = GetKeyMappings(CMHandle, In, outputPtr, 32);
 
 			if (sz > 32) {
-				Span<byte> buffer = new byte[IntPtr.Size * sz];
-				outputPtr = (byte*)Unsafe.AsPointer(ref buffer.GetPinnableReference());
-
-				_ = GetKeyMappings(CMHandle, In, outputPtr, sz);
+				fixed(byte* pBuffer = new byte[IntPtr.Size * sz]) {
+					_ = GetKeyMappings(CMHandle, In, pBuffer, sz);
+					return Get(pBuffer, (int)sz);
+				}
 			}
 
-			var ret = new List<string>((int)sz);
-			for (var x = 0;x < sz;x++) {
-				var arrPtr = (byte**)outputPtr;
-
-				int strSz = 0;
-				while (arrPtr[x][++strSz] != 0x00);
-
-				var copy = Encoding.UTF8.GetString(arrPtr[x], strSz);
-				ret.Add(copy);
-			}
-
-			return ret;
+			return Get(outputPtr, (int)sz);
 		}
 
 		[DllImport("ConfusableMatcher", CallingConvention = CallingConvention.Cdecl)]
