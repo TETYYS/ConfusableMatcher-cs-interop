@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConfusableMatcher-cs-intero
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UnitTests", "UnitTests\UnitTests.csproj", "{FAFF0699-FEA0-4B78-9FFC-8451EFE3F158}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerfTest", "..\PerfTest\PerfTest.csproj", "{9B7E0697-C03D-4B23-9EF4-39EC056F36BF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{FAFF0699-FEA0-4B78-9FFC-8451EFE3F158}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FAFF0699-FEA0-4B78-9FFC-8451EFE3F158}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FAFF0699-FEA0-4B78-9FFC-8451EFE3F158}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9B7E0697-C03D-4B23-9EF4-39EC056F36BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B7E0697-C03D-4B23-9EF4-39EC056F36BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B7E0697-C03D-4B23-9EF4-39EC056F36BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B7E0697-C03D-4B23-9EF4-39EC056F36BF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
