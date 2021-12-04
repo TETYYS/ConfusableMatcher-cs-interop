@@ -650,4 +650,65 @@ public class UnitTests
 			matcher.GetKeyMappings("N");
 		}
 	}
+
+	[Fact]
+	void Test36()
+	{
+		var map = new List<(string Key, string Value)>() {
+			("N", "/B/"),
+			("I", "/")
+		};
+
+		var opts = CMOptions.Default;
+		opts.MatchOnWordBoundary = true;
+		opts.MatchRepeating = true;
+
+		var matcher = new ConfusableMatcher(map, null);
+
+		var (_, failures) = matcher.IndexOfDebugFailures("I/B/AM", "INAN", opts);
+
+		Assert.Equal("No new paths in input /AM̲ (5) comparing NAN̲ (3)", failures[0]);
+		Assert.Equal("No path in input I/B̲/AM (2) comparing IN̲AN (1)", failures[1]);
+		Assert.Equal("No path in input I/B̲/AM (2) comparing IN̲AN (1)", failures[2]);
+		Assert.Equal("No path in input B/A̲M (4) comparing IN̲AN (1)", failures[3]);
+		Assert.Equal("No path in input /AM ̲ (6) comparing I̲NAN (0)", failures[4]);
+	}
+
+	[Fact]
+	void Test37()
+	{
+		var map = new List<(string Key, string Value)>() {
+			("N", "/B/"),
+			("I", "/")
+		};
+
+		var opts = CMOptions.Default;
+		opts.MatchOnWordBoundary = true;
+		opts.MatchRepeating = true;
+
+		var matcher = new ConfusableMatcher(map, null);
+
+		var (_, failures) = matcher.IndexOfDebugFailuresEx("I/B/AM", "INAN", opts);
+
+		int x = 0;
+		Assert.Equal(5UL, failures[x].InPos);
+		Assert.Equal(3UL, failures[x].ContainsPos);
+		Assert.Equal(CM_DEBUG_FAILURE_REASON.NO_NEW_PATHS, failures[x++].Reason);
+
+		Assert.Equal(2UL, failures[x].InPos);
+		Assert.Equal(1UL, failures[x].ContainsPos);
+		Assert.Equal(CM_DEBUG_FAILURE_REASON.NO_PATH, failures[x++].Reason);
+
+		Assert.Equal(2UL, failures[x].InPos);
+		Assert.Equal(1UL, failures[x].ContainsPos);
+		Assert.Equal(CM_DEBUG_FAILURE_REASON.NO_PATH, failures[x++].Reason);
+
+		Assert.Equal(4UL, failures[x].InPos);
+		Assert.Equal(1UL, failures[x].ContainsPos);
+		Assert.Equal(CM_DEBUG_FAILURE_REASON.NO_PATH, failures[x++].Reason);
+
+		Assert.Equal(6UL, failures[x].InPos);
+		Assert.Equal(0UL, failures[x].ContainsPos);
+		Assert.Equal(CM_DEBUG_FAILURE_REASON.NO_PATH, failures[x++].Reason);
+	}
 }
